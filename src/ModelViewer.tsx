@@ -1,5 +1,7 @@
 import React, { Component, createRef, RefObject } from "react";
 import {
+  AnimationMixer,
+  Clock,
   GridHelper,
   Mesh,
   MeshBasicMaterial,
@@ -31,6 +33,7 @@ type OtherObj = Partial<{
   gridHelper: GridHelper;
   camera: PerspectiveCamera;
   stats: Stats;
+  animationMixer: AnimationMixer;
 }>;
 
 class ModelViewer extends Component<ModelViewerProps, ModelViewerState> {
@@ -40,6 +43,7 @@ class ModelViewer extends Component<ModelViewerProps, ModelViewerState> {
   canvasRef: RefObject<HTMLCanvasElement>;
   stopAnimation: boolean;
   canvasResizeObs?: ResizeObserver;
+  clock: Clock;
   constructor(props: Readonly<ModelViewerProps>) {
     super(props);
     this.containerRef = createRef();
@@ -47,6 +51,7 @@ class ModelViewer extends Component<ModelViewerProps, ModelViewerState> {
     this.disObjs = {};
     this.otherObjs = {};
     this.stopAnimation = false;
+    this.clock = new Clock();
   }
 
   componentDidMount() {
@@ -114,8 +119,13 @@ class ModelViewer extends Component<ModelViewerProps, ModelViewerState> {
       }
     });
 
+    const mixer = new AnimationMixer(model.scene);
+    const action = mixer.clipAction(model.animations[0]);
+    action.play();
+
     centerModel(model.scene);
     rootScene!.add(model.scene);
+    this.otherObjs.animationMixer = mixer;
   }
   initCamera() {
     const { clientWidth, clientHeight } = this.canvasRef.current!;
@@ -162,6 +172,7 @@ class ModelViewer extends Component<ModelViewerProps, ModelViewerState> {
       renderer.render(rootScene, camera);
       orbitControls.update();
       stats.update();
+      this.otherObjs.animationMixer?.update(this.clock.getDelta());
     }
   };
   destroy() {
